@@ -11,35 +11,60 @@
 
 import re
 import os
+import sys
 import shutil
 import subprocess
 import argparse
 
-# This is to help coaches and graders identify student assignments
-__author__ = "???"
+__author__ = "DavidRinSE"
 
+def get_special_paths(directory):
+    regex = re.compile('__(.*?)__')
+    filenames = []
+    for _, _, files in os.walk(directory, topdown=False):
+        for name in files:
+            if regex.search(name):
+                filenames.append(os.path.abspath(name))
+    return filenames
 
-# +++your code here+++
-# Write functions and modify main() to call them
+def copy_to(paths, copypath):
+    for path in paths:
+        try:
+            shutil.copy(path, copypath)
+        except:
+            os.makedirs(os.path.abspath(copypath))
+            shutil.copy(path, copypath)
 
-def main():
-    # This snippet will help you get started with the argparse module.
+def zip_to(paths, zippath):
+    command = "zip -j {} {}".format(zippath, " ".join(paths))
+    print("Command I'm going to do:\n{}".format(command))
+    check = subprocess.check_output(
+        command + "; exit 0",
+        stderr=subprocess.STDOUT,
+        shell=True)
+    print('\n' + str(check, 'utf-8'))
+
+def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--todir', help='dest dir for special files')
     parser.add_argument('--tozip', help='dest zipfile for special files')
-    # TODO need an argument to pick up 'from_dir'
-    args = parser.parse_args()
+    parser.add_argument('fromdir', help='search dir for special files')
+    ns = parser.parse_args(args)
+    
+    if not ns:
+        parser.print_usage()
+        sys.exit(1)
 
-    # TODO you must write your own code to get the cmdline args.
-    # Read the docs and examples for the argparse module about how to do this.
-
-    # Parsing command line arguments is a must-have skill.
-    # This is input data validation.  If something is wrong (or missing) with any
-    # required args, the general rule is to print a usage message and exit(1).
-
-    # +++your code here+++
-    # Call your functions
-
+    special_paths = get_special_paths(ns.fromdir)
+    
+    if ns.todir:
+        copy_to(special_paths, ns.todir)
+    if ns.tozip:
+        zip_to(special_paths, ns.tozip)
+    
+    if not ns.todir and not ns.tozip:
+        for path in special_paths:
+            print(path)
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
